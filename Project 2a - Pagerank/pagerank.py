@@ -57,7 +57,23 @@ def transition_model(corpus, page, damping_factor):
     linked to by `page`. With probability `1 - damping_factor`, choose
     a link at random chosen from all pages in the corpus.
     """
-    raise NotImplementedError
+    num_pages = len(corpus)
+    transition_probabilities = {}
+
+    if not corpus[page]:
+        return {p: 1 / num_pages for p in corpus}
+
+    damping_contribution = (1 - damping_factor) / num_pages
+    links_count = len(corpus[page])
+    link_contribution = damping_factor / links_count
+
+    for p in corpus:
+        transition_probabilities[p] = damping_contribution
+
+    for link in corpus[page]:
+        transition_probabilities[link] += link_contribution
+
+    return transition_probabilities
 
 
 def sample_pagerank(corpus, damping_factor, n):
@@ -69,19 +85,46 @@ def sample_pagerank(corpus, damping_factor, n):
     their estimated PageRank value (a value between 0 and 1). All
     PageRank values should sum to 1.
     """
-    raise NotImplementedError
+    page_ranks = {page: 0 for page in corpus}
+    current_page = random.choice(list(corpus.keys()))
+
+    for _ in range(n):
+        page_ranks[current_page] += 1
+        transition_probs = transition_model(corpus, current_page, damping_factor)
+        choices = list(transition_probs)
+        weights = list(transition_probs.values())
+        current_page = random.choices(choices, weights, k=1)[0]
+
+    total_samples = sum(page_ranks.values())
+    page_ranks = {page: rank / total_samples for page, rank in page_ranks.items()}
+
+    return page_ranks
 
 
 def iterate_pagerank(corpus, damping_factor):
-    """
-    Return PageRank values for each page by iteratively updating
-    PageRank values until convergence.
+    num_pages = len(corpus)
+    page_ranks = {page: 1 / num_pages for page in corpus}
+    new_page_ranks = {page: 0 for page in corpus}
 
-    Return a dictionary where keys are page names, and values are
-    their estimated PageRank value (a value between 0 and 1). All
-    PageRank values should sum to 1.
-    """
-    raise NotImplementedError
+    convergence_threshold = 0.001
+    while True:
+        max_change = 0
+        for page in corpus:
+            new_page_rank = (1 - damping_factor) / num_pages
+            for referring_page, links in corpus.items():
+                if page in links:
+                    new_page_rank += (
+                        damping_factor * page_ranks[referring_page] / len(links)
+                    )
+            max_change = max(max_change, abs(new_page_rank - page_ranks[page]))
+            new_page_ranks[page] = new_page_rank
+
+        if max_change < convergence_threshold:
+            break
+
+        page_ranks = new_page_ranks.copy()
+
+    return page_ranks
 
 
 if __name__ == "__main__":
