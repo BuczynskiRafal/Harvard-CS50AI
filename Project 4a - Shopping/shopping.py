@@ -4,6 +4,11 @@ import sys
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
 
+
+import pandas as pd
+from sklearn.preprocessing import LabelEncoder
+
+
 TEST_SIZE = 0.4
 
 
@@ -59,7 +64,21 @@ def load_data(filename):
     labels should be the corresponding list of labels, where each label
     is 1 if Revenue is true, and 0 otherwise.
     """
-    raise NotImplementedError
+    data = pd.read_csv(filename)
+
+    encoders = {
+        'Month': LabelEncoder(),
+        'VisitorType': LabelEncoder(),
+        'Weekend': LabelEncoder()
+    }
+
+    for column, encoder in encoders.items():
+        data[column] = encoder.fit_transform(data[column])
+
+    evidence = data.drop('Revenue', axis=1)
+    labels = data['Revenue'].astype(int)
+
+    return evidence.values.tolist(), labels.values.tolist()
 
 
 def train_model(evidence, labels):
@@ -67,7 +86,9 @@ def train_model(evidence, labels):
     Given a list of evidence lists and a list of labels, return a
     fitted k-nearest neighbor model (k=1) trained on the data.
     """
-    raise NotImplementedError
+    model = KNeighborsClassifier(n_neighbors=1)
+    model.fit(evidence, labels)
+    return model
 
 
 def evaluate(labels, predictions):
@@ -85,7 +106,15 @@ def evaluate(labels, predictions):
     representing the "true negative rate": the proportion of
     actual negative labels that were accurately identified.
     """
-    raise NotImplementedError
+    TP = sum((labels[i] == 1 and predictions[i] == 1) for i in range(len(labels)))
+    FP = sum((labels[i] == 0 and predictions[i] == 1) for i in range(len(labels)))
+    TN = sum((labels[i] == 0 and predictions[i] == 0) for i in range(len(labels)))
+    FN = sum((labels[i] == 1 and predictions[i] == 0) for i in range(len(labels)))
+
+    sensitivity = TP / (TP + FN)
+    specificity = TN / (TN + FP)
+
+    return sensitivity, specificity
 
 
 if __name__ == "__main__":
