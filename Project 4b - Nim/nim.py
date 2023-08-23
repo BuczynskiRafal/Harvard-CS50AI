@@ -101,7 +101,9 @@ class NimAI():
         Return the Q-value for the state `state` and the action `action`.
         If no Q-value exists yet in `self.q`, return 0.
         """
-        raise NotImplementedError
+        state = tuple(state)
+        return self.q.get((state, action), 0)
+
 
     def update_q_value(self, state, action, old_q, reward, future_rewards):
         """
@@ -118,7 +120,8 @@ class NimAI():
         `alpha` is the learning rate, and `new value estimate`
         is the sum of the current reward and estimated future rewards.
         """
-        raise NotImplementedError
+        state = tuple(state)
+        self.q[(state, action)] = old_q + self.alpha * (reward + future_rewards - old_q)
 
     def best_future_reward(self, state):
         """
@@ -130,7 +133,10 @@ class NimAI():
         Q-value in `self.q`. If there are no available actions in
         `state`, return 0.
         """
-        raise NotImplementedError
+        state = tuple(state)
+        available_actions = Nim.available_actions(state)
+        possible_q_values = [self.get_q_value(state, action) for action in available_actions]
+        return max(possible_q_values, default=0)
 
     def choose_action(self, state, epsilon=True):
         """
@@ -147,7 +153,15 @@ class NimAI():
         If multiple actions have the same Q-value, any of those
         options is an acceptable return value.
         """
-        raise NotImplementedError
+        state = tuple(state)
+        available_actions = Nim.available_actions(state)
+
+        if epsilon and random.random() < self.epsilon:
+            return random.choice(list(available_actions))
+
+        best_q_value = self.best_future_reward(state)
+        best_actions = [action for action in available_actions if self.get_q_value(state, action) == best_q_value]
+        return random.choice(best_actions)
 
 
 def train(n):
